@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>页面1</title>
+    <script>
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        /* 本页专属：聊天界面样式 */
+        .above-box {
+            position: fixed;
+            top: 56px;
+            bottom: 70px;
+            left: 200px;
+            right: 0;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            overflow-y: auto;
+            padding: 15px;
+        }
+        .msg {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 12px;
+        }
+        .bubble {
+            max-width: 70%;
+            padding: 10px 14px;
+            background: var(--bubble);
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 200px;
+            right: 80px;
+            height: 60px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 0 20px;
+            font-size: 16px;
+            outline: none;
+            color: var(--text);
+        }
+        .footer:focus { border-color: var(--accent); }
+        .send-btn {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 60px;
+            height: 40px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .send-btn:hover { background: var(--accent-hover); }
+    </style>
+</head>
+<body>
+    <!-- 左侧引导栏 -->
+    <div class="sidebar">
+        <div class="logo">AGZ</div>
+        <a class="module" href="../index.html">首页</a>
+        <a class="module" href="页面1.html">ai助手</a>
+        <a class="module" href="页面2.html">智能出题</a>
+        <a class="module" href="页面3.html">模块3</a>
+        <a class="module" href="页面4.html">模块4</a>
+        <a class="module" href="页面5.html">模块5</a>
+    </div>
+
+    <!-- 内容区 -->
+    <div class="box">
+        <!-- 顶部标签栏（快捷跳转） -->
+        <div class="tab-bar" id="tabBar"></div>
+    </div>
+
+    <!-- 聊天区域 -->
+    <div class="above-box" id="chatArea"></div>
+    <input class="footer" id="footer" type="text" placeholder="请输入内容...">
+    <button class="send-btn" onclick="send()">发送</button>
+
+    <!-- 深色/浅色切换按钮 -->
+    <button class="theme-btn" id="themeBtn" title="切换深色/浅色模式">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+
+    <script>
+        // 本页面信息（供 script.js 的标签栏使用）
+        var PAGES = {
+            home:  { label: '首页',    href: '../index.html' },
+            ai:    { label: 'ai助手',  href: '页面1.html' },
+            chuti: { label: '智能出题', href: '页面2.html' },
+            m3:    { label: '模块3',   href: '页面3.html' },
+            m4:    { label: '模块4',   href: '页面4.html' },
+            m5:    { label: '模块5',   href: '页面5.html' }
+        };
+        var CURRENT = 'ai';
+
+        // 本页专属：发送消息
+        function send() {
+            var input = document.getElementById('footer');
+            var val = input.value.trim();
+            if (!val) return;
+            var box = document.getElementById('chatArea');
+            var msg = document.createElement('div');
+            msg.className = 'msg';
+            var bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            bubble.textContent = val;
+            msg.appendChild(bubble);
+            box.appendChild(msg);
+            input.value = '';
+            box.scrollTop = box.scrollHeight;
+        }
+        // 按回车也能发送
+        document.getElementById('footer').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') send();
+        });
+    </script>
+    <script src="../script.js"></script>
+</body>
+</html>
