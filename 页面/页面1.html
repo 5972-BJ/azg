@@ -67,6 +67,12 @@
             font-size: 14px;
         }
         .send-btn:hover { background: var(--accent-hover); }
+        /* AI 回复气泡（靠左、浅色） */
+        .msg.left { justify-content: flex-start; }
+        .bubble.ai { background: var(--bubble-ai); }
+        .bubble.err { background: #fdeaea; color: #c0392b; }
+        .typing { color: var(--muted); font-size: 13px; padding: 4px 2px; }
+        .send-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -79,6 +85,13 @@
         <a class="module" href="页面3.html">模块3</a>
         <a class="module" href="页面4.html">模块4</a>
         <a class="module" href="页面5.html">模块5</a>
+
+        <!-- 登录状态区（由 script.js 渲染） -->
+        <div class="user-area">
+            <a class="module" id="loginLink" href="../login.html">登录 / 注册</a>
+            <span class="user-name" id="userName" style="display:none"></span>
+            <a class="module" id="logoutLink" href="javascript:void(0)" onclick="logout()" style="display:none">退出登录</a>
+        </div>
     </div>
 
     <!-- 内容区 -->
@@ -109,28 +122,102 @@
             m5:    { label: '模块5',   href: '页面5.html' }
         };
         var CURRENT = 'ai';
+    </script>
+    <script src="../script.js"></script>
+    <script>
+        // ---------- 聊天功能（对接后端 /api/chat） ----------
+        var chatArea = document.getElementById('chatArea');
 
-        // 本页专属：发送消息
-        function send() {
-            var input = document.getElementById('footer');
-            var val = input.value.trim();
-            if (!val) return;
-            var box = document.getElementById('chatArea');
+        // 追加一条消息气泡
+        // type: 'user' 用户(靠右) | 'ai' AI回复(靠左) | 'err' 错误提示(靠左)
+        function appendMsg(text, type) {
             var msg = document.createElement('div');
-            msg.className = 'msg';
+            msg.className = 'msg' + (type === 'user' ? '' : ' left');
             var bubble = document.createElement('div');
-            bubble.className = 'bubble';
-            bubble.textContent = val;
+            bubble.className = 'bubble' + (type === 'user' ? '' : (type === 'err' ? ' err' : ' ai'));
+            bubble.textContent = text;
             msg.appendChild(bubble);
-            box.appendChild(msg);
-            input.value = '';
-            box.scrollTop = box.scrollHeight;
+            chatArea.appendChild(msg);
+            chatArea.scrollTop = chatArea.scrollHeight;
         }
+
+        // 追加"正在思考"占位，返回可删除的元素
+        function appendTyping() {
+            var el = document.createElement('div');
+            el.className = 'typing';
+            el.textContent = 'AI 正在思考…';
+            chatArea.appendChild(el);
+            chatArea.scrollTop = chatArea.scrollHeight;
+            return el;
+        }
+
+        // 发送消息
+        function send() {
+            var user = getUser();
+            if (!user) { location.href = '../login.html'; return; }
+            var input = document.getElementById('footer');
+            var btn = document.querySelector('.send-btn');
+            var val = input.value.trim();
+            if (!val || btn.disabled) return;
+
+            appendMsg(val, 'user');
+            input.value = '';
+            var typing = appendTyping();
+            btn.disabled = true;
+
+            api('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: user.id, message: val })
+            }).then(function (res) {
+                typing.remove();
+                btn.disabled = false;
+                if (res.success && res.data) {
+                    appendMsg(res.data.reply, 'ai');
+                    // 保存对话记录（失败不打断聊天）
+                    api('/api/chat/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: user.id,
+                            question: val,
+                            answer: res.data.reply,
+                            mind_map: res.data.mindmap || null,
+                            image_url: res.data.image || null
+                        })
+                    }).catch(function () {});
+                } else {
+                    appendMsg('出错了：' + (res.message || '未知错误'), 'err');
+                }
+            }).catch(function () {
+                typing.remove();
+                btn.disabled = false;
+                appendMsg('网络错误，请确认后端已启动（localhost:3000）', 'err');
+            });
+        }
+
+        // 加载历史对话
+        function loadHistory() {
+            var user = getUser();
+            if (!user) return;
+            api('/api/chat/history?user_id=' + user.id).then(function (res) {
+                if (!res.success || !res.data || !res.data.length) return;
+                // 接口按时间倒序返回，反转成时间正序展示
+                res.data.slice().reverse().forEach(function (rec) {
+                    appendMsg(rec.question, 'user');
+                    appendMsg(rec.answer, 'ai');
+                });
+            }).catch(function () {});
+        }
+
+        // 未登录直接跳登录页
+        var LOGGED = requireLogin('../login.html');
+        if (LOGGED) loadHistory();
+
         // 按回车也能发送
         document.getElementById('footer').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') send();
         });
     </script>
-    <script src="../script.js"></script>
 </body>
 </html>

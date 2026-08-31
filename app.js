@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const cors = require('cors');
 const express = require('express');
+const path = require('path');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const db = require('./database.js');
@@ -118,6 +119,45 @@ app.post('/api/chat/save', checkToken, (req, res) => {
     }
 });
 
+// ===== 智能出题接口 =====
+app.post('/api/questions', (req, res) => {
+    const { keyword } = req.body;
+    if (!keyword) return sendResponse(res, false, null, 'keyword 不能为空');
+    // 占位题目，后续替换AI模块
+    const questions = [
+        {
+            id: 1,
+            type: '选择题',
+            question: `关于「${keyword}」，下列说法正确的是？`,
+            options: [
+                `「${keyword}」的定义、原理与实际应用密切相关`,
+                `「${keyword}」在日常学习中毫无用处`,
+                `「${keyword}」只能用于考试，无法实践`,
+                '以上说法都不正确'
+            ],
+            answer: 'A',
+            explanation: `本题考查「${keyword}」的基本认知。正确理解概念并结合实际应用是掌握该知识点的关键。（占位解析，等待AI模块接入）`
+        },
+        {
+            id: 2,
+            type: '简答题',
+            question: `请简述「${keyword}」的核心要点。`,
+            options: null,
+            answer: `（占位答案）围绕「${keyword}」，可从基本概念、核心原理、典型应用三个方面展开作答。`,
+            explanation: '简答题建议分点作答，先给结论再展开说明。（占位解析，等待AI模块接入）'
+        },
+        {
+            id: 3,
+            type: '应用题',
+            question: `请结合一个实际场景，说明「${keyword}」是如何应用的。`,
+            options: null,
+            answer: `（占位答案）例如在学习场景中，可以借助「${keyword}」提升理解与练习效率。`,
+            explanation: '应用题重在理论联系实际，需写明场景、方法与结果。（占位解析，等待AI模块接入）'
+        }
+    ];
+    sendResponse(res, true, questions, '出题成功（占位，等待AI模块接入）');
+});
+
 // ===== 查询用户历史对话 =====
 app.get('/api/chat/history', checkToken, (req, res) => {
     const user_id = req.query.user_id;
@@ -134,14 +174,40 @@ app.get('/api/chat/history', checkToken, (req, res) => {
     }
 });
 
-// ===== 根路径测试 =====
+// ===== 前端静态页面（仅白名单，避免暴露 .env / 数据库等敏感文件） =====
+// Express 5 的 req.path 不会自动解码，这里手动解码后再做白名单匹配
+const STATIC_FILES = [
+    '/index.html', '/style.css', '/script.js', '/login.html', '/api-test.html',
+    '/页面/页面1.html', '/页面/页面2.html', '/页面/页面3.html', '/页面/页面4.html', '/页面/页面5.html'
+];
+app.use((req, res, next) => {
+    if (req.method !== 'GET') return next();
+    let decoded;
+    try {
+        decoded = decodeURIComponent(req.path);
+    } catch (err) {
+        return next();
+    }
+    if (STATIC_FILES.includes(decoded)) {
+        return res.sendFile(path.join(__dirname, decoded));
+    }
+    next();
+});
+
+// ===== 根路径：返回前端首页 =====
 app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// ===== API 清单（原根路径信息迁移到这里） =====
+app.get('/api', (req, res) => {
     res.json({
         message: 'AI学习网站后端已运行【含反馈功能】',
         endpoints: {
             register: 'POST /api/register',
             login: 'POST /api/login',
             chat: 'POST /api/chat',
+            questions: 'POST /api/questions',
             feedback: 'POST /api/feedback',
             feedbacks: 'GET /api/feedbacks',
             chatSave: 'POST /api/chat/save',

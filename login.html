@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 / 注册 - AGZ</title>
+    <script>
+        // 打开页面时先应用上次保存的主题，避免闪烁
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="auth-page">
+        <div class="auth-card">
+            <div class="logo">AGZ</div>
+            <p class="auth-sub">AI 学习网站 · 登录后开启学习之旅</p>
+
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="tabLogin" onclick="switchMode('login')">登录</button>
+                <button class="auth-tab" id="tabRegister" onclick="switchMode('register')">注册</button>
+            </div>
+
+            <div class="auth-msg" id="msg"></div>
+
+            <!-- 登录表单 -->
+            <form id="loginForm" onsubmit="return doLogin(event)">
+                <div class="field">
+                    <label>用户名</label>
+                    <input type="text" id="loginUsername" placeholder="请输入用户名" required>
+                </div>
+                <div class="field">
+                    <label>密码</label>
+                    <input type="password" id="loginPassword" placeholder="请输入密码" required>
+                </div>
+                <button class="btn-primary" type="submit" id="loginBtn">登 录</button>
+            </form>
+
+            <!-- 注册表单 -->
+            <form id="registerForm" style="display:none" onsubmit="return doRegister(event)">
+                <div class="field">
+                    <label>用户名</label>
+                    <input type="text" id="regUsername" placeholder="请输入用户名" required>
+                </div>
+                <div class="field">
+                    <label>邮箱</label>
+                    <input type="email" id="regEmail" placeholder="请输入邮箱" required>
+                </div>
+                <div class="field">
+                    <label>密码（不少于6位）</label>
+                    <input type="password" id="regPassword" placeholder="请输入密码" required minlength="6">
+                </div>
+                <button class="btn-primary" type="submit" id="registerBtn">注 册</button>
+            </form>
+
+            <a class="back-home" href="index.html">← 返回首页</a>
+        </div>
+    </div>
+
+    <!-- 深色/浅色切换按钮 -->
+    <button class="theme-btn" id="themeBtn" title="切换深色/浅色模式">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+
+    <script src="script.js"></script>
+    <script>
+        // 本页脚本（依赖 script.js 中的 api 等函数）
+
+        // 已登录则直接回首页
+        if (getToken()) location.href = 'index.html';
+
+        function showMsg(text, type) {
+            var msg = document.getElementById('msg');
+            msg.textContent = text;
+            msg.className = 'auth-msg' + (type ? ' ' + type : '');
+        }
+
+        // 切换登录/注册
+        function switchMode(mode) {
+            var isLogin = mode === 'login';
+            document.getElementById('loginForm').style.display = isLogin ? 'block' : 'none';
+            document.getElementById('registerForm').style.display = isLogin ? 'none' : 'block';
+            document.getElementById('tabLogin').className = 'auth-tab' + (isLogin ? ' active' : '');
+            document.getElementById('tabRegister').className = 'auth-tab' + (isLogin ? '' : ' active');
+            showMsg('');
+        }
+
+        // 登录成功后保存并跳转
+        function afterLogin(res) {
+            localStorage.setItem('token', res.data.token);
+            localStorage.setItem('user', JSON.stringify(res.data.user));
+            location.href = 'index.html';
+        }
+
+        function doLogin(e) {
+            e.preventDefault();
+            var username = document.getElementById('loginUsername').value.trim();
+            var password = document.getElementById('loginPassword').value;
+            if (!username || !password) { showMsg('用户名和密码不能为空', 'err'); return false; }
+            var btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            showMsg('正在登录…');
+            api('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, password: password })
+            }).then(function (res) {
+                btn.disabled = false;
+                if (res.success) {
+                    showMsg('登录成功，正在跳转…', 'ok');
+                    afterLogin(res);
+                } else {
+                    showMsg(res.message || '登录失败', 'err');
+                }
+            }).catch(function () {
+                btn.disabled = false;
+                showMsg('网络错误，请确认后端已启动（localhost:3000）', 'err');
+            });
+            return false;
+        }
+
+        function doRegister(e) {
+            e.preventDefault();
+            var username = document.getElementById('regUsername').value.trim();
+            var email = document.getElementById('regEmail').value.trim();
+            var password = document.getElementById('regPassword').value;
+            if (!username || !email || !password) { showMsg('请填写完整信息', 'err'); return false; }
+            if (password.length < 6) { showMsg('密码长度不能少于6位', 'err'); return false; }
+            var btn = document.getElementById('registerBtn');
+            btn.disabled = true;
+            showMsg('正在注册…');
+            api('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, email: email, password: password })
+            }).then(function (res) {
+                if (res.success) {
+                    showMsg('注册成功，正在自动登录…', 'ok');
+                    // 注册成功后自动登录
+                    return api('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: username, password: password })
+                    }).then(function (loginRes) {
+                        btn.disabled = false;
+                        if (loginRes.success) {
+                            afterLogin(loginRes);
+                        } else {
+                            showMsg('注册成功，请手动登录', 'err');
+                            switchMode('login');
+                        }
+                    });
+                } else {
+                    btn.disabled = false;
+                    showMsg(res.message || '注册失败', 'err');
+                }
+            }).catch(function () {
+                btn.disabled = false;
+                showMsg('网络错误，请确认后端已启动（localhost:3000）', 'err');
+            });
+            return false;
+        }
+    </script>
+</body>
+</html>

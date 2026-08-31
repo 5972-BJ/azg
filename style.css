@@ -1,0 +1,324 @@
+/* ===== AGZ 全局样式 ===== */
+
+/* ---------- 主题变量 ---------- */
+:root {
+    --bg: #f4f5fa;
+    --card-bg: #ffffff;
+    --border: #e4e7f0;
+    --accent: #4f6ef7;
+    --accent-hover: #3c5ce8;
+    --text: #1f2430;
+    --muted: #8b93a7;
+    --bubble: #e9edfe;
+    --bubble-ai: #f1f3f8;
+}
+
+.dark {
+    --bg: #13151c;
+    --card-bg: #1d2029;
+    --border: #2d3242;
+    --accent: #5b7cfa;
+    --accent-hover: #6f8cff;
+    --text: #e8eaf1;
+    --muted: #9aa1b6;
+    --bubble: #2b3550;
+    --bubble-ai: #292f3d;
+}
+
+/* ---------- 基础 ---------- */
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+/* ---------- 左侧引导栏 ---------- */
+.sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 200px;
+    background: var(--card-bg);
+    border-right: 1px solid var(--border);
+    padding: 20px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 20;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--accent);
+    margin: 0 8px 18px;
+    user-select: none;
+}
+
+.module {
+    display: block;
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: background 0.15s, color 0.15s;
+}
+
+.module:hover {
+    background: var(--bubble-ai);
+    color: var(--accent);
+}
+
+/* 侧边栏底部登录区 */
+.user-area {
+    margin-top: auto;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+}
+
+.user-name {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    padding: 8px 12px 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---------- 右侧内容区 ---------- */
+.box {
+    margin-left: 200px;
+    min-height: 100vh;
+    padding: 12px 16px;
+}
+
+/* ---------- 顶部标签栏 ---------- */
+.tab-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 14px;
+}
+
+.tab {
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text);
+    font-size: 13px;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.tab:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* ---------- 深色/浅色切换按钮 ---------- */
+.theme-btn {
+    position: fixed;
+    top: 12px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 30;
+}
+
+.theme-btn:hover { border-color: var(--accent); }
+
+.theme-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.icon-sun { display: none; }
+.dark .icon-sun { display: block; }
+.dark .icon-moon { display: none; }
+
+/* ---------- 首页 ---------- */
+.hero {
+    padding: 48px 20px 20px;
+    text-align: center;
+}
+
+.hero h1 {
+    font-size: 32px;
+    margin: 0 0 10px;
+}
+
+.hero h1 span { color: var(--accent); }
+
+.hero p {
+    color: var(--muted);
+    font-size: 15px;
+    margin: 0 0 36px;
+}
+
+.cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+    padding: 0 20px 40px;
+}
+
+.card-link {
+    width: 220px;
+    padding: 22px 20px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    text-decoration: none;
+    color: var(--text);
+    transition: transform 0.15s, border-color 0.15s;
+}
+
+.card-link:hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+}
+
+.card-link .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.card-link .card-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+/* ---------- 登录/注册页 ---------- */
+.auth-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.auth-card {
+    width: 380px;
+    max-width: 100%;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 30px 30px 24px;
+}
+
+.auth-card .logo {
+    text-align: center;
+    margin: 0 0 4px;
+}
+
+.auth-sub {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    margin: 0 0 22px;
+}
+
+.auth-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 9px;
+    text-align: center;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text);
+    background: transparent;
+}
+
+.auth-tab.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+.auth-msg {
+    font-size: 13px;
+    min-height: 18px;
+    margin-bottom: 10px;
+    word-break: break-word;
+}
+
+.auth-msg.err { color: #e05252; }
+.auth-msg.ok { color: #2e9e5b; }
+
+.field { margin-bottom: 14px; }
+
+.field label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+
+.field input {
+    width: 100%;
+    height: 42px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0 14px;
+    background: var(--card-bg);
+    color: var(--text);
+    outline: none;
+    font-size: 14px;
+}
+
+.field input:focus { border-color: var(--accent); }
+
+.btn-primary {
+    width: 100%;
+    height: 44px;
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.back-home {
+    display: block;
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+}
+
+.back-home:hover { color: var(--accent); }

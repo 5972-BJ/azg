@@ -21,12 +21,39 @@
         <a class="module" href="页面/页面3.html">模块3</a>
         <a class="module" href="页面/页面4.html">模块4</a>
         <a class="module" href="页面/页面5.html">模块5</a>
+
+        <!-- 登录状态区（由 script.js 渲染） -->
+        <div class="user-area">
+            <a class="module" id="loginLink" href="login.html">登录 / 注册</a>
+            <span class="user-name" id="userName" style="display:none"></span>
+            <a class="module" id="logoutLink" href="javascript:void(0)" onclick="logout()" style="display:none">退出登录</a>
+        </div>
     </div>
 
     <!-- 右侧内容区 -->
     <div class="box">
         <!-- 顶部标签栏（快捷跳转） -->
         <div class="tab-bar" id="tabBar"></div>
+
+        <!-- 欢迎区 -->
+        <div class="hero">
+            <h1>欢迎使用 <span>AGZ</span></h1>
+            <p>基于大模型的个性化 AI 学习助手</p>
+        </div>
+        <div class="cards">
+            <a class="card-link" href="页面/页面1.html">
+                <div class="card-title">💬 ai助手</div>
+                <div class="card-desc">有问题随时问，AI 助手为你解答，并保留历史对话。</div>
+            </a>
+            <a class="card-link" href="页面/页面2.html">
+                <div class="card-title">📝 智能出题</div>
+                <div class="card-desc">输入知识点，AI 自动生成题目助你巩固练习。</div>
+            </a>
+            <a class="card-link" href="login.html">
+                <div class="card-title">🔐 登录 / 注册</div>
+                <div class="card-desc">登录后可使用完整功能并保存学习记录。</div>
+            </a>
+        </div>
     </div>
 
     <!-- 深色/浅色切换按钮 -->

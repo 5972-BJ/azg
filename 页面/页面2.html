@@ -21,6 +21,7 @@
         }
         .search-input {
             width: 720px;
+            max-width: 70%;
             height: 54px;
             border: 1px solid var(--border);
             border-radius: 27px;
@@ -42,6 +43,80 @@
             cursor: pointer;
         }
         .search-btn:hover { background: var(--accent-hover); }
+        .search-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* 本页专属：题目列表样式 */
+        .question-list {
+            max-width: 860px;
+            margin: 28px auto 40px;
+            padding: 0 16px;
+        }
+        .question-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px 22px;
+            margin-bottom: 16px;
+        }
+        .q-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .q-index {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #fff;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .q-type {
+            font-size: 12px;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            border-radius: 999px;
+            padding: 2px 10px;
+        }
+        .q-text {
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .q-options {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 10px;
+        }
+        .q-options li {
+            font-size: 14px;
+            line-height: 1.6;
+            padding: 6px 12px;
+            border-radius: 8px;
+            color: var(--text);
+        }
+        .q-options li:hover { background: var(--bubble-ai); }
+        .q-answer {
+            font-size: 13px;
+            color: #2e9e5b;
+            margin-bottom: 4px;
+        }
+        .q-explain {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+        .q-loading, .q-empty {
+            text-align: center;
+            color: var(--muted);
+            font-size: 14px;
+            padding: 30px 0;
+        }
     </style>
 </head>
 <body>
@@ -54,6 +129,13 @@
         <a class="module" href="页面3.html">模块3</a>
         <a class="module" href="页面4.html">模块4</a>
         <a class="module" href="页面5.html">模块5</a>
+
+        <!-- 登录状态区（由 script.js 渲染） -->
+        <div class="user-area">
+            <a class="module" id="loginLink" href="../login.html">登录 / 注册</a>
+            <span class="user-name" id="userName" style="display:none"></span>
+            <a class="module" id="logoutLink" href="javascript:void(0)" onclick="logout()" style="display:none">退出登录</a>
+        </div>
     </div>
 
     <!-- 内容区 -->
@@ -63,9 +145,12 @@
 
         <!-- 顶部搜索框 -->
         <div class="search-box">
-            <input type="text" class="search-input" placeholder="输入知识点，AI 帮你出题">
-            <button class="search-btn">搜索</button>
+            <input type="text" class="search-input" id="searchInput" placeholder="输入知识点，AI 帮你出题">
+            <button class="search-btn" id="searchBtn" onclick="generate()">搜索</button>
         </div>
+
+        <!-- 题目结果列表 -->
+        <div class="question-list" id="questionList"></div>
     </div>
 
     <!-- 深色/浅色切换按钮 -->
@@ -87,5 +172,94 @@
         var CURRENT = 'chuti';
     </script>
     <script src="../script.js"></script>
+    <script>
+        // ---------- 智能出题（对接后端 /api/questions） ----------
+        function generate() {
+            var input = document.getElementById('searchInput');
+            var btn = document.getElementById('searchBtn');
+            var list = document.getElementById('questionList');
+            var keyword = input.value.trim();
+            if (!keyword || btn.disabled) return;
+
+            list.innerHTML = '<div class="q-loading">正在生成题目…</div>';
+            btn.disabled = true;
+
+            api('/api/questions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keyword: keyword })
+            }).then(function (res) {
+                btn.disabled = false;
+                if (res.success && res.data && res.data.length) {
+                    renderQuestions(res.data);
+                } else {
+                    list.innerHTML = '<div class="q-empty">' + (res.message || '生成失败，请重试') + '</div>';
+                }
+            }).catch(function () {
+                btn.disabled = false;
+                list.innerHTML = '<div class="q-empty">网络错误，请确认后端已启动（localhost:3000）</div>';
+            });
+        }
+
+        function renderQuestions(questions) {
+            var list = document.getElementById('questionList');
+            list.innerHTML = '';
+            questions.forEach(function (q, i) {
+                var card = document.createElement('div');
+                card.className = 'question-card';
+
+                var head = document.createElement('div');
+                head.className = 'q-head';
+                var index = document.createElement('span');
+                index.className = 'q-index';
+                index.textContent = i + 1;
+                head.appendChild(index);
+                if (q.type) {
+                    var type = document.createElement('span');
+                    type.className = 'q-type';
+                    type.textContent = q.type;
+                    head.appendChild(type);
+                }
+                card.appendChild(head);
+
+                var text = document.createElement('div');
+                text.className = 'q-text';
+                text.textContent = q.question;
+                card.appendChild(text);
+
+                if (q.options && q.options.length) {
+                    var options = document.createElement('ul');
+                    options.className = 'q-options';
+                    var letters = ['A', 'B', 'C', 'D'];
+                    q.options.forEach(function (opt, j) {
+                        var li = document.createElement('li');
+                        li.textContent = letters[j] + '. ' + opt;
+                        options.appendChild(li);
+                    });
+                    card.appendChild(options);
+                }
+
+                if (q.answer) {
+                    var answer = document.createElement('div');
+                    answer.className = 'q-answer';
+                    answer.textContent = '答案：' + q.answer;
+                    card.appendChild(answer);
+                }
+                if (q.explanation) {
+                    var explain = document.createElement('div');
+                    explain.className = 'q-explain';
+                    explain.textContent = '解析：' + q.explanation;
+                    card.appendChild(explain);
+                }
+
+                list.appendChild(card);
+            });
+        }
+
+        // 搜索框按回车也能出题
+        document.getElementById('searchInput').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') generate();
+        });
+    </script>
 </body>
 </html>
