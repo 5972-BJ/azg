@@ -3,13 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>页面5</title>
+    <title>概念图解</title>
     <script>
         if (localStorage.getItem('theme') === 'dark') {
             document.documentElement.classList.add('dark');
         }
     </script>
     <link rel="stylesheet" href="../style.css">
+    <style>
+        /* 本页专属：概念图解样式 */
+        .search-box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-top: 40px;
+            gap: 10px;
+        }
+        .search-input {
+            width: 720px;
+            max-width: 70%;
+            height: 54px;
+            border: 1px solid var(--border);
+            border-radius: 27px;
+            padding: 0 24px;
+            font-size: 16px;
+            background: var(--card-bg);
+            color: var(--text);
+            outline: none;
+        }
+        .search-input:focus { border-color: var(--accent); }
+        .search-btn {
+            height: 54px;
+            padding: 0 28px;
+            border: none;
+            border-radius: 27px;
+            background: var(--accent);
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .search-btn:hover { background: var(--accent-hover); }
+        .search-btn:disabled { opacity: .6; cursor: not-allowed; }
+        .c-hint { text-align: center; color: var(--muted); font-size: 13px; margin-top: 14px; }
+
+        /* 历史记录 */
+        .history-bar { max-width: 860px; margin: 18px auto 0; padding: 0 16px; display: flex; justify-content: center; }
+        .history-btn {
+            padding: 8px 18px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .history-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .history-panel { max-width: 860px; margin: 16px auto 0; padding: 0 16px; }
+        .history-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+        .history-head {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 16px; border-bottom: 1px solid var(--border);
+            font-size: 14px; font-weight: 600;
+        }
+        .history-close { background: none; border: none; color: var(--muted); font-size: 15px; cursor: pointer; }
+        .history-close:hover { color: var(--text); }
+        .history-list { max-height: 340px; overflow-y: auto; padding: 8px; }
+        .history-item {
+            display: flex; justify-content: space-between; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 10px; cursor: pointer; font-size: 14px;
+        }
+        .history-item:hover { background: var(--bubble-ai); }
+        .history-keyword { color: var(--accent); }
+        .history-time { color: var(--muted); font-size: 12px; flex-shrink: 0; }
+
+        /* 结果卡片 */
+        .c-result { max-width: 860px; margin: 28px auto 40px; padding: 0 16px; }
+        .c-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px 22px;
+            margin-bottom: 16px;
+        }
+        .c-title { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+        .c-plain {
+            font-size: 15px; line-height: 1.8;
+            border-left: 4px solid var(--accent);
+            background: var(--bubble-ai);
+            border-radius: 8px;
+            padding: 12px 16px;
+        }
+        .c-analogy { font-size: 14px; line-height: 1.8; color: var(--text); }
+        .c-example { margin-bottom: 12px; }
+        .c-example:last-child { margin-bottom: 0; }
+        .c-example .e-title { font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 4px; }
+        .c-example .e-body { font-size: 13px; color: var(--text); line-height: 1.7; }
+        .c-pit { font-size: 13px; color: #d04a4a; line-height: 1.7; margin-bottom: 6px; }
+        .c-pit:last-child { margin-bottom: 0; }
+        .c-tips { font-size: 13px; color: #2e9e5b; line-height: 1.7; }
+
+        /* 知识图谱树 */
+        .c-tree { overflow-x: auto; padding: 4px 0; }
+        .c-tree ul { list-style: none; margin: 0; padding-left: 22px; }
+        .c-tree li { margin: 8px 0; position: relative; }
+        .c-tree li::before {
+            content: '';
+            position: absolute;
+            left: -13px;
+            top: 50%;
+            width: 10px;
+            border-top: 1px dashed var(--border);
+        }
+        .c-tree ul ul { border-left: 1px dashed var(--border); margin-left: -3px; }
+        .c-node {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 10px;
+            background: var(--bubble);
+            color: var(--text);
+            font-size: 13px;
+            cursor: pointer;
+            transition: transform .12s, box-shadow .12s;
+            user-select: none;
+        }
+        .c-node:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+        .c-node.root { background: var(--accent); color: #fff; font-weight: 700; font-size: 14px; }
+        .c-node.active { outline: 2px solid var(--accent); }
+        .c-tree-hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+        /* 节点深入讲解 */
+        .c-deep { display: none; margin-top: 14px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        .c-deep.show { display: block; }
+        .c-deep-head {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 14px; background: var(--bubble-ai);
+            font-size: 13px; font-weight: 600;
+        }
+        .c-deep-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; }
+        .c-deep-close:hover { color: var(--text); }
+        .c-deep-body { padding: 12px 16px; font-size: 14px; line-height: 1.8; white-space: pre-wrap; }
+
+        .c-loading, .c-empty { text-align: center; color: var(--muted); font-size: 14px; padding: 30px 0; }
+    </style>
 </head>
 <body>
     <!-- 左侧引导栏 -->
@@ -20,7 +155,7 @@
         <a class="module" href="页面2.html">智能出题</a>
         <a class="module" href="页面3.html">错题复习</a>
         <a class="module" href="页面4.html">学习计划</a>
-        <a class="module" href="页面5.html">模块5</a>
+        <a class="module" href="页面5.html">概念图解</a>
 
         <!-- 登录状态区（由 script.js 渲染） -->
         <div class="user-area">
@@ -34,6 +169,34 @@
     <div class="box">
         <!-- 顶部标签栏（快捷跳转） -->
         <div class="tab-bar" id="tabBar"></div>
+
+        <!-- 搜索框 -->
+        <div class="search-box">
+            <input type="text" class="search-input" id="searchInput" placeholder="输入一个概念，例如：梯度下降、傅里叶变换、贝叶斯定理">
+            <button class="search-btn" id="searchBtn" onclick="explore()">🔍 图解</button>
+        </div>
+        <div class="c-hint">AI 将生成：通俗解释 · 生活化类比 · 知识图谱 · 多角度案例 · 常见误区</div>
+
+        <!-- 历史记录入口 -->
+        <div class="history-bar">
+            <button class="history-btn" id="historyBtn" onclick="toggleHistory()">📜 查看历史记录</button>
+        </div>
+
+        <!-- 历史记录面板 -->
+        <div class="history-panel" id="historyPanel" style="display:none">
+            <div class="history-card">
+                <div class="history-head">
+                    <span>图解历史</span>
+                    <button class="history-close" onclick="toggleHistory(false)" title="关闭">✕</button>
+                </div>
+                <div class="history-list" id="historyList">
+                    <div class="c-loading">加载中…</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 结果列表 -->
+        <div class="c-result" id="result"></div>
     </div>
 
     <!-- 深色/浅色切换按钮 -->
@@ -45,15 +208,236 @@
     <script>
         // 本页面信息（供 script.js 的标签栏使用）
         var PAGES = {
-            home:  { label: '首页',    href: '../index.html' },
-            ai:    { label: 'ai助手',  href: '页面1.html' },
+            home:  { label: '首页',     href: '../index.html' },
+            ai:    { label: 'ai助手',   href: '页面1.html' },
             chuti: { label: '智能出题', href: '页面2.html' },
-            m3:    { label: '错题复习',   href: '页面3.html' },
-            m4:    { label: '学习计划',   href: '页面4.html' },
-            m5:    { label: '模块5',   href: '页面5.html' }
+            m3:    { label: '错题复习', href: '页面3.html' },
+            m4:    { label: '学习计划', href: '页面4.html' },
+            m5:    { label: '概念图解', href: '页面5.html' }
         };
         var CURRENT = 'm5';
     </script>
     <script src="../script.js"></script>
+    <script>
+        // ---------- 概念图解（对接后端 /api/concepts） ----------
+        // 未登录直接跳登录页
+        var LOGGED = requireLogin('../login.html');
+
+        var CURRENT_CONCEPT = '';
+        var currentData = null;
+
+        function el(tag, cls, text) {
+            var e = document.createElement(tag);
+            if (cls) e.className = cls;
+            if (text !== undefined && text !== null) e.textContent = text;
+            return e;
+        }
+
+        function fmtTime(t) {
+            try {
+                return new Date(String(t).replace(' ', 'T') + 'Z').toLocaleString('zh-CN', { hour12: false });
+            } catch (e) { return t; }
+        }
+
+        // 图解一个概念
+        function explore() {
+            if (!getToken()) { location.href = '../login.html'; return; }
+            var input = document.getElementById('searchInput');
+            var btn = document.getElementById('searchBtn');
+            var result = document.getElementById('result');
+            var concept = input.value.trim();
+            if (!concept || btn.disabled) return;
+
+            CURRENT_CONCEPT = concept;
+            result.innerHTML = '<div class="c-loading">🧠 AI 正在图解「' + concept + '」，请稍候…</div>';
+            btn.disabled = true;
+
+            api('/api/concepts/explain', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ concept: concept })
+            }).then(function (res) {
+                btn.disabled = false;
+                if (res.success && res.data) {
+                    renderResult(res.data);
+                } else {
+                    result.innerHTML = '<div class="c-empty">' + (res.message || '生成失败，请重试') + '</div>';
+                }
+            }).catch(function () {
+                btn.disabled = false;
+                result.innerHTML = '<div class="c-empty">网络错误，请确认后端已启动（localhost:3000）</div>';
+            });
+        }
+
+        // 渲染讲解结果
+        function renderResult(data) {
+            currentData = data;
+            var result = document.getElementById('result');
+            result.innerHTML = '';
+
+            // 1. 通俗解释
+            if (data.plain) {
+                var plainCard = el('div', 'c-card');
+                plainCard.appendChild(el('div', 'c-title', '💡 一句话通俗解释'));
+                plainCard.appendChild(el('div', 'c-plain', data.plain));
+                result.appendChild(plainCard);
+            }
+
+            // 2. 生活化类比
+            if (data.analogy) {
+                var anaCard = el('div', 'c-card');
+                anaCard.appendChild(el('div', 'c-title', '🏠 生活化类比'));
+                anaCard.appendChild(el('div', 'c-analogy', data.analogy));
+                result.appendChild(anaCard);
+            }
+
+            // 3. 知识图谱（可交互）
+            var mapCard = el('div', 'c-card');
+            mapCard.appendChild(el('div', 'c-title', '🕸️ 知识图谱'));
+            var tree = el('div', 'c-tree');
+            tree.appendChild(buildTree(data.mindmap || { name: CURRENT_CONCEPT, children: [] }, true));
+            mapCard.appendChild(tree);
+            mapCard.appendChild(el('div', 'c-tree-hint', '💡 点击任意节点，让 AI 深入讲解'));
+            // 节点深入讲解区
+            var deep = el('div', 'c-deep');
+            var deepHead = el('div', 'c-deep-head');
+            deepHead.appendChild(el('span', '', ''));
+            var deepClose = el('button', 'c-deep-close', '✕');
+            deepClose.title = '关闭';
+            deepClose.onclick = function () { deep.classList.remove('show'); };
+            deepHead.appendChild(deepClose);
+            deep.appendChild(deepHead);
+            var deepBody = el('div', 'c-deep-body');
+            deep.appendChild(deepBody);
+            mapCard.appendChild(deep);
+            result.appendChild(mapCard);
+
+            // 4. 多角度案例
+            if (data.examples && data.examples.length) {
+                var exCard = el('div', 'c-card');
+                exCard.appendChild(el('div', 'c-title', '📚 多角度案例'));
+                data.examples.forEach(function (ex) {
+                    var box = el('div', 'c-example');
+                    if (ex.title) box.appendChild(el('div', 'e-title', ex.title));
+                    box.appendChild(el('div', 'e-body', ex.content));
+                    exCard.appendChild(box);
+                });
+                result.appendChild(exCard);
+            }
+
+            // 5. 常见误区
+            if (data.pitfalls && data.pitfalls.length) {
+                var pitCard = el('div', 'c-card');
+                pitCard.appendChild(el('div', 'c-title', '⚠️ 常见误区'));
+                data.pitfalls.forEach(function (p) {
+                    pitCard.appendChild(el('div', 'c-pit', '✗ ' + p));
+                });
+                result.appendChild(pitCard);
+            }
+
+            // 6. 学习建议
+            if (data.tips) {
+                var tipCard = el('div', 'c-card');
+                tipCard.appendChild(el('div', 'c-title', '🎓 学习建议'));
+                tipCard.appendChild(el('div', 'c-tips', data.tips));
+                result.appendChild(tipCard);
+            }
+        }
+
+        // 递归构建知识图谱树
+        function buildTree(node, isRoot) {
+            var ul = document.createElement('ul');
+            var li = document.createElement('li');
+            var name = el('span', 'c-node' + (isRoot ? ' root' : ''), node.name);
+            name.onclick = function () {
+                deepDive(name, node.name);
+            };
+            li.appendChild(name);
+            ul.appendChild(li);
+            if (node.children && node.children.length) {
+                node.children.forEach(function (child) {
+                    li.appendChild(buildTree(child, false));
+                });
+            }
+            return ul;
+        }
+
+        // 点击节点 → AI 深入讲解
+        function deepDive(nodeEl, topic) {
+            var mapCard = nodeEl.closest('.c-card');
+            var deep = mapCard.querySelector('.c-deep');
+            var deepHead = deep.querySelector('.c-deep-head span');
+            var deepBody = deep.querySelector('.c-deep-body');
+            // 高亮当前节点
+            mapCard.querySelectorAll('.c-node').forEach(function (n) { n.classList.remove('active'); });
+            nodeEl.classList.add('active');
+            deepHead.textContent = '🧩 ' + topic;
+            deepBody.textContent = 'AI 讲解中…';
+            deep.classList.add('show');
+            api('/api/concepts/deep', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ concept: CURRENT_CONCEPT, topic: topic })
+            }).then(function (res) {
+                if (res.success && res.data) {
+                    deepBody.textContent = res.data.content;
+                } else {
+                    deepBody.textContent = res.message || '讲解生成失败';
+                }
+            }).catch(function () {
+                deepBody.textContent = '网络错误，请确认后端已启动（localhost:3000）';
+            });
+        }
+
+        // ---------- 图解历史 ----------
+        function toggleHistory(force) {
+            var panel = document.getElementById('historyPanel');
+            var open = (typeof force === 'boolean') ? force : (panel.style.display === 'none');
+            panel.style.display = open ? 'block' : 'none';
+            if (open) loadHistory();
+        }
+
+        function loadHistory() {
+            var list = document.getElementById('historyList');
+            list.innerHTML = '<div class="c-loading">加载中…</div>';
+            api('/api/concepts/history').then(function (res) {
+                if (!res.success) {
+                    list.innerHTML = '<div class="c-empty">' + res.message + '</div>';
+                    return;
+                }
+                if (!res.data || !res.data.length) {
+                    list.innerHTML = '<div class="c-empty">暂无图解记录，先去图解一个概念吧</div>';
+                    return;
+                }
+                list.innerHTML = '';
+                res.data.forEach(function (rec) {
+                    var item = el('div', 'history-item');
+                    var kw = el('span', 'history-keyword', '🧠 ' + rec.concept);
+                    var time = el('span', 'history-time', fmtTime(rec.create_time));
+                    item.appendChild(kw);
+                    item.appendChild(time);
+                    item.onclick = function () {
+                        document.getElementById('searchInput').value = rec.concept;
+                        CURRENT_CONCEPT = rec.concept;
+                        if (rec.data) {
+                            renderResult(rec.data);
+                        } else {
+                            document.getElementById('result').innerHTML = '<div class="c-empty">该记录没有讲解内容</div>';
+                        }
+                        toggleHistory(false);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    };
+                    list.appendChild(item);
+                });
+            }).catch(function () {
+                list.innerHTML = '<div class="c-empty">网络错误，请确认后端已启动（localhost:3000）</div>';
+            });
+        }
+
+        // 搜索框按回车
+        document.getElementById('searchInput').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') explore();
+        });
+    </script>
 </body>
 </html>

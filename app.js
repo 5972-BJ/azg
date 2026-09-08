@@ -159,6 +159,60 @@ function calcStreak(dates) {
     return streak;
 }
 
+// 概念讲解大师人设（要求输出纯 JSON）
+const CONCEPT_SYSTEM_PROMPT = [
+    '你是「AGZ AI学习网站」的概念讲解大师。',
+    '针对用户输入的概念，输出以下内容：',
+    '1. plain：一句话通俗解释，连外行都能听懂；',
+    '2. analogy：一个生活化类比，把抽象概念比作日常事物，具体生动；',
+    '3. mindmap：知识图谱树（根节点 name 为概念本身，2~4 个一级分支，如"定义/性质/公式/应用/易混淆点"，每个分支下 1~3 个二级节点，节点 name 要简洁）；',
+    '4. examples：2~3 个不同角度的应用案例（每个有 title 和 content）；',
+    '5. pitfalls：2~3 个常见误区或易错点；',
+    '6. tips：1~2 句学习建议。',
+    '必须只输出一个 JSON 对象，不要输出任何其他文字，格式如下：',
+    '{"plain":"...","analogy":"...","mindmap":{"name":"概念","children":[{"name":"分支","children":[{"name":"子节点"}]}]},"examples":[{"title":"...","content":"..."}],"pitfalls":["..."],"tips":"..."}'
+].join('\n');
+
+// 节点深入讲解人设（输出纯文本）
+const CONCEPT_DEEP_PROMPT = [
+    '你是「AGZ AI学习网站」的概念讲解大师。',
+    '用户正在学习某个概念，想深入了解其中的一个子主题。',
+    '要求：围绕该子主题给出简明深入的讲解，2~4 个要点或小段，结合具体例子，中文，直接输出文字（不要 JSON、不要 markdown 标题）。'
+].join('\n');
+
+// 解析概念讲解返回的 JSON（容错 + 清洗知识图谱树）
+function parseConcept(text) {
+    let json = text;
+    const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fence) json = fence[1];
+    const data = JSON.parse(json);
+    if (!data || typeof data !== 'object') throw new Error('AI 返回格式不正确');
+    // 清洗知识图谱：限制深度 3 层、每层最多 5 个节点
+    function cleanNode(node, depth) {
+        if (!node || typeof node !== 'object' || depth > 3) return null;
+        const name = String(node.name || '').trim();
+        if (!name) return null;
+        const children = Array.isArray(node.children)
+            ? node.children.slice(0, 5).map(c => cleanNode(c, depth + 1)).filter(Boolean)
+            : [];
+        return { name, children };
+    }
+    const mindmap = cleanNode(data.mindmap, 1) || { name: '知识图谱', children: [] };
+    return {
+        plain: String(data.plain || '').trim(),
+        analogy: String(data.analogy || '').trim(),
+        mindmap,
+        examples: (Array.isArray(data.examples) ? data.examples : [])
+            .map(e => typeof e === 'string'
+                ? { title: '', content: e }
+                : { title: String((e && e.title) || '').trim(), content: String((e && e.content) || '').trim() })
+            .filter(e => e.content),
+        pitfalls: (Array.isArray(data.pitfalls) ? data.pitfalls : [])
+            .map(p => String(p || '').trim()).filter(Boolean),
+        tips: String(data.tips || '').trim()
+    };
+}
+
 // 调用 DeepSeek 对话接口（OpenAI 兼容格式，extra 可覆盖默认参数）
 async function callDeepSeek(messages, extra) {
     if (!DEEPSEEK_API_KEY) throw new Error('未配置 DEEPSEEK_API_KEY');
@@ -691,6 +745,66 @@ app.post('/api/plans/:id/urge', checkToken, async (req, res) => {
     }
 });
 
+// ===== 概念图解：AI 生成讲解并保存 =====
+app.post('/api/concepts/explain', checkToken, async (req, res) => {
+    const { concept } = req.body;
+    if (!concept) return sendResponse(res, false, null, 'concept 不能为空');
+    try {
+        const reply = await callDeepSeek([
+            { role: 'system', content: CONCEPT_SYSTEM_PROMPT },
+            { role: 'user', content: '请讲解这个概念：' + concept }
+        ], {
+            temperature: 0.5,
+            max_tokens: 2500,
+            response_format: { type: 'json_object' }
+        });
+        const data = parseConcept(reply);
+        // 保存记录（失败不影响讲解结果）
+        try {
+            db.prepare('INSERT INTO concept_record (user_id, concept, data) VALUES (?, ?, ?)')
+                .run(req.user.id, concept, JSON.stringify(data));
+        } catch (saveErr) {
+            console.error('[概念图解] 保存失败：', saveErr.message);
+        }
+        sendResponse(res, true, data, '讲解已生成');
+    } catch (err) {
+        console.error('[DeepSeek] 概念讲解失败：', err.message);
+        sendResponse(res, false, null, 'AI 讲解失败：' + err.message);
+    }
+});
+
+// ===== 概念图解：历史记录 =====
+app.get('/api/concepts/history', checkToken, (req, res) => {
+    try {
+        const rows = db.prepare('SELECT id, concept, data, create_time FROM concept_record WHERE user_id = ? ORDER BY id DESC')
+            .all(req.user.id);
+        const list = rows.map(r => {
+            let data = null;
+            try { data = JSON.parse(r.data); } catch (e) { data = null; }
+            return { id: r.id, concept: r.concept, data, create_time: r.create_time };
+        });
+        sendResponse(res, true, list, '查询成功');
+    } catch (err) {
+        sendResponse(res, false, null, err.message);
+    }
+});
+
+// ===== 概念图解：知识图谱节点深入讲解 =====
+app.post('/api/concepts/deep', checkToken, async (req, res) => {
+    const { concept, topic } = req.body;
+    if (!concept || !topic) return sendResponse(res, false, null, 'concept 和 topic 不能为空');
+    try {
+        const reply = await callDeepSeek([
+            { role: 'system', content: CONCEPT_DEEP_PROMPT },
+            { role: 'user', content: '概念：' + concept + '\n想深入了解的子主题：' + topic }
+        ], { temperature: 0.5, max_tokens: 600 });
+        sendResponse(res, true, { content: reply }, '讲解已生成');
+    } catch (err) {
+        console.error('[DeepSeek] 深入讲解失败：', err.message);
+        sendResponse(res, false, null, 'AI 讲解失败：' + err.message);
+    }
+});
+
 // ===== 查询用户历史对话 =====
 app.get('/api/chat/history', checkToken, (req, res) => {
     const user_id = req.query.user_id;
@@ -756,6 +870,9 @@ app.get('/api', (req, res) => {
             planDelete: 'DELETE /api/plans/:id',
             planUrge: 'POST /api/plans/:id/urge',
             checkin: 'POST /api/checkin',
+            conceptExplain: 'POST /api/concepts/explain',
+            conceptHistory: 'GET /api/concepts/history',
+            conceptDeep: 'POST /api/concepts/deep',
             feedback: 'POST /api/feedback',
             feedbacks: 'GET /api/feedbacks',
             chatSave: 'POST /api/chat/save',

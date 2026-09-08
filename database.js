@@ -96,4 +96,15 @@ CREATE TABLE IF NOT EXISTS study_checkins (
 );
 `);
 
+// 概念图解记录表
+db.exec(`
+CREATE TABLE IF NOT EXISTS concept_record (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    concept TEXT NOT NULL,
+    data TEXT NOT NULL,
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+`);
+
 module.exports = db;
