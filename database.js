@@ -41,4 +41,59 @@ CREATE TABLE IF NOT EXISTS chat_record (
 );
 `);
 
+// 出题记录表
+db.exec(`
+CREATE TABLE IF NOT EXISTS question_record (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    keyword TEXT NOT NULL,
+    questions TEXT NOT NULL,
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+`);
+
+// 错题本表
+db.exec(`
+CREATE TABLE IF NOT EXISTS mistakes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    keyword TEXT NOT NULL,
+    type TEXT,
+    question TEXT NOT NULL,
+    options TEXT,
+    answer TEXT,
+    explanation TEXT,
+    wrong_answer TEXT,
+    wrong_count INTEGER DEFAULT 1,
+    status TEXT DEFAULT 'pending',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    master_time DATETIME
+);
+`);
+
+// 学习计划表
+db.exec(`
+CREATE TABLE IF NOT EXISTS study_plans (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    goal TEXT NOT NULL,
+    tasks TEXT NOT NULL,
+    status TEXT DEFAULT 'active',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    complete_time DATETIME
+);
+`);
+
+// 学习打卡表（同一用户同一天只记一次）
+db.exec(`
+CREATE TABLE IF NOT EXISTS study_checkins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    check_date TEXT NOT NULL,
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, check_date)
+);
+`);
+
 module.exports = db;
