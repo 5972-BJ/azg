@@ -12,6 +12,57 @@ app.use(cors());
 const PORT = process.env.PORT || 3000;
 const SECRET_KEY = process.env.JWT_SECRET || 'default_secret_change_me';
 
+// ===== DeepSeek AI 配置 =====
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
+const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
+const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
+
+// 答疑助手人设
+const AI_SYSTEM_PROMPT = [
+    '你是「AGZ AI学习网站」的答疑助手，帮助学生解答各学科的学习问题。',
+    '回答要求：',
+    '1. 准确、通俗易懂，优先把概念和原理讲清楚；',
+    '2. 善用分点、步骤和例子，重要结论可以单独总结；',
+    '3. 如果问题不够完整，先给出通用讲解，再引导用户补充细节；',
+    '4. 使用中文回答，公式尽量用文字或简单符号表达。'
+].join('\n');
+
+// 调用 DeepSeek 对话接口（OpenAI 兼容格式）
+async function callDeepSeek(messages) {
+    if (!DEEPSEEK_API_KEY) throw new Error('未配置 DEEPSEEK_API_KEY');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 60000); // 60秒超时
+    try {
+        const res = await fetch(DEEPSEEK_BASE_URL + '/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + DEEPSEEK_API_KEY
+            },
+            body: JSON.stringify({
+                model: DEEPSEEK_MODEL,
+                messages,
+                temperature: 0.7,
+                max_tokens: 2000,
+                stream: false
+            }),
+            signal: controller.signal
+        });
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error('DeepSeek 接口返回 ' + res.status + '：' + text.slice(0, 200));
+        }
+        const data = await res.json();
+        const reply = data.choices && data.choices[0] && data.choices[0].message
+            ? data.choices[0].message.content
+            : '';
+        if (!reply) throw new Error('DeepSeek 返回内容为空');
+        return reply;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 // 跨域与JSON解析
 app.use(express.json());
 
@@ -81,21 +132,37 @@ app.get('/api/feedbacks', checkToken, (req, res) => {
     sendResponse(res, true, rows, '获取成功');
 });
 
-// ===== 聊天接口 =====
-app.post('/api/chat', (req, res) => {
+// ===== 聊天接口（对接 DeepSeek） =====
+app.post('/api/chat', async (req, res) => {
     const { user_id, message } = req.body;
     if (!user_id || !message) return sendResponse(res, false, null, 'user_id 和 message 不能为空');
     // 校验用户是否存在
     const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(user_id);
     if (!user) return sendResponse(res, false, null, '用户不存在');
-    // 占位回复，后续替换AI模块
-    const reply = `${user.username} 你好！你问的是："${message}"。（这里是占位回复，等待AI模块封装）`;
-    const data = {
-        reply,
-        mindmap: null,
-        image: null
-    };
-    sendResponse(res, true, data, '获取回复成功');
+    try {
+        // 取最近 10 轮对话作为上下文（过滤掉旧的占位回复）
+        const history = db.prepare(`
+            SELECT question, answer FROM chat_record
+            WHERE user_id = ? ORDER BY id DESC LIMIT 10
+        `).all(user_id)
+            .reverse()
+            .filter(r => r.answer && !/占位|等待AI模块/.test(r.answer));
+
+        const messages = [
+            { role: 'system', content: AI_SYSTEM_PROMPT },
+            ...history.flatMap(r => [
+                { role: 'user', content: r.question },
+                { role: 'assistant', content: r.answer }
+            ]),
+            { role: 'user', content: message }
+        ];
+
+        const reply = await callDeepSeek(messages);
+        sendResponse(res, true, { reply, mindmap: null, image: null }, '获取回复成功');
+    } catch (err) {
+        console.error('[DeepSeek] 调用失败：', err.message);
+        sendResponse(res, false, null, 'AI 服务暂时不可用：' + err.message);
+    }
 });
 
 // ===== 保存对话记录 =====
