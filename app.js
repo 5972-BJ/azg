@@ -169,8 +169,17 @@ const CONCEPT_SYSTEM_PROMPT = [
     '4. examples：2~3 个不同角度的应用案例（每个有 title 和 content）；',
     '5. pitfalls：2~3 个常见误区或易错点；',
     '6. tips：1~2 句学习建议。',
+    '7. visualization：可选字段。仅当概念涉及电路（RC/RL/RLC 电路、正弦稳态）或自动控制（阶跃响应、PID 控制）时输出可视化配置对象，其余情况一律输出 null。',
+    '可用模板（template 必须取下列值之一，params 键必须严格一致）：',
+    'rc_transient：mode 为 "charge" 或 "discharge"，params 键 V0（电压，默认5）、R（电阻，默认1000）、C（电容，默认0.000001）；',
+    'rl_transient：params 键 V0（默认5）、R（默认100）、L（默认0.1）；',
+    'rlc_transient：params 键 V0（默认5）、R（默认10）、L（默认0.1）、C（默认0.000001）；',
+    'sinusoidal_wave：params 键 Vm（幅值，默认5）、f（频率，默认50）、phi（初相角度，默认0）；',
+    'step_response：params 键 K（增益，默认1）、wn（自然频率，默认5）、zeta（阻尼比，默认0.7）；',
+    'pid_response：params 键 Kp（默认1）、Ki（默认0.5）、Kd（默认0.1）、wn（默认5）。',
+    '参数优先从用户输入中提取（如 "R=1kΩ"→R:1000，"C=1μF"→C:0.000001），用户未给出的参数用默认值；formula 写该模板的核心公式字符串。',
     '必须只输出一个 JSON 对象，不要输出任何其他文字，格式如下：',
-    '{"plain":"...","analogy":"...","mindmap":{"name":"概念","children":[{"name":"分支","children":[{"name":"子节点"}]}]},"examples":[{"title":"...","content":"..."}],"pitfalls":["..."],"tips":"..."}'
+    '{"plain":"...","analogy":"...","mindmap":{"name":"概念","children":[{"name":"分支","children":[{"name":"子节点"}]}]},"examples":[{"title":"...","content":"..."}],"pitfalls":["..."],"tips":"...","visualization":null}'
 ].join('\n');
 
 // 节点深入讲解人设（输出纯文本）
@@ -209,7 +218,29 @@ function parseConcept(text) {
             .filter(e => e.content),
         pitfalls: (Array.isArray(data.pitfalls) ? data.pitfalls : [])
             .map(p => String(p || '').trim()).filter(Boolean),
-        tips: String(data.tips || '').trim()
+        tips: String(data.tips || '').trim(),
+        visualization: parseVisualization(data.visualization)
+    };
+}
+
+// 解析 AI 返回的可视化配置（可选字段，严格校验模板与参数，不合法返回 null）
+const VIZ_TEMPLATES = ['rc_transient', 'rl_transient', 'rlc_transient', 'sinusoidal_wave', 'step_response', 'pid_response'];
+function parseVisualization(v) {
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+    if (!VIZ_TEMPLATES.includes(v.template)) return null;
+    const params = {};
+    if (v.params && typeof v.params === 'object') {
+        for (const [k, val] of Object.entries(v.params)) {
+            const n = Number(val);
+            if (Number.isFinite(n)) params[k] = n;
+        }
+    }
+    if (!Object.keys(params).length) return null;
+    return {
+        template: String(v.template),
+        mode: typeof v.mode === 'string' && v.mode === 'discharge' ? 'discharge' : 'charge',
+        params,
+        formula: String(v.formula || '').trim()
     };
 }
 
@@ -825,7 +856,8 @@ app.get('/api/chat/history', checkToken, (req, res) => {
 // Express 5 的 req.path 不会自动解码，这里手动解码后再做白名单匹配
 const STATIC_FILES = [
     '/index.html', '/style.css', '/script.js', '/login.html', '/api-test.html',
-    '/页面/页面1.html', '/页面/页面2.html', '/页面/页面3.html', '/页面/页面4.html', '/页面/页面5.html'
+    '/页面/页面1.html', '/页面/页面2.html', '/页面/页面3.html', '/页面/页面4.html', '/页面/页面5.html',
+    '/demo.html', '/concept-config.js', '/visualization-engine.js'
 ];
 app.use((req, res, next) => {
     if (req.method !== 'GET') return next();

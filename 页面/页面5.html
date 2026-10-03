@@ -144,6 +144,17 @@
         .c-deep-body { padding: 12px 16px; font-size: 14px; line-height: 1.8; white-space: pre-wrap; }
 
         .c-loading, .c-empty { text-align: center; color: var(--muted); font-size: 14px; padding: 30px 0; }
+
+        /* 交互可视化区 */
+        .c-viz-item { margin-bottom: 26px; }
+        .c-viz-item:last-child { margin-bottom: 0; }
+        .c-viz-name { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+        .c-viz-canvas {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: #fafafa; /* 绘图区固定浅色底，保证曲线在深浅主题下都可读 */
+            padding: 12px;
+        }
     </style>
 </head>
 <body>
@@ -180,6 +191,7 @@
         <!-- 历史记录入口 -->
         <div class="history-bar">
             <button class="history-btn" id="historyBtn" onclick="toggleHistory()">📜 查看历史记录</button>
+            <a class="history-btn" href="../demo.html" target="_blank" title="电路/自控全部 20+ 知识点可视化">⚡ 可视化演示</a>
         </div>
 
         <!-- 历史记录面板 -->
@@ -218,6 +230,9 @@
         var CURRENT = 'm5';
     </script>
     <script src="../script.js"></script>
+    <!-- 电路/自控交互可视化：配置表 + 渲染引擎 -->
+    <script src="../concept-config.js"></script>
+    <script src="../visualization-engine.js"></script>
     <script>
         // ---------- 概念图解（对接后端 /api/concepts） ----------
         // 未登录直接跳登录页
@@ -342,6 +357,87 @@
                 tipCard.appendChild(el('div', 'c-tips', data.tips));
                 result.appendChild(tipCard);
             }
+
+            // 7. 交互可视化（优先 AI 解析的题目参数，无则本地配置表匹配）
+            renderVisualization(result, data);
+        }
+
+        // 交互可视化：优先 AI 返回的参数，回退到本地知识点配置表匹配
+        function renderVisualization(result, data) {
+            var cfgs = [];
+            if (data && data.visualization && window.VisualizationEngine
+                && VisualizationEngine.canRender(data.visualization.template)) {
+                cfgs.push(buildVizConfig(data.visualization));
+            } else if (window.matchConcept && window.VisualizationEngine) {
+                var seen = {};
+                (window.matchConcept(CURRENT_CONCEPT) || []).forEach(function (cfg) {
+                    if (cfg && !seen[cfg.id] && VisualizationEngine.canRender(cfg.template)) {
+                        seen[cfg.id] = true;
+                        cfgs.push(cfg);
+                    }
+                });
+            }
+            if (!cfgs.length) return;
+
+            var vizCard = el('div', 'c-card');
+            vizCard.appendChild(el('div', 'c-title', '⚡ 交互可视化（拖动滑块实时观察曲线变化）'));
+            var vizList = el('div', 'c-viz-list');
+            cfgs.forEach(function (cfg) {
+                var item = el('div', 'c-viz-item');
+                item.appendChild(el('div', 'c-viz-name', cfg.name + (cfg.formula ? '　📐 ' + cfg.formula : '')));
+                var canvasBox = el('div', 'c-viz-canvas');
+                item.appendChild(canvasBox);
+
+                var engine = new VisualizationEngine(canvasBox);
+                engine.initCanvas(680, 380);
+                engine.createControlPanel(cfg);
+                engine.onParamsChange = function () { engine.renderByTemplate(cfg.template); };
+                engine.renderByTemplate(cfg.template);
+
+                vizList.appendChild(item);
+            });
+            vizCard.appendChild(vizList);
+            result.appendChild(vizCard);
+        }
+
+        // 把 AI 返回的题目参数转成引擎配置（range/unit/label 用本地配置表补齐并钳制范围）
+        function buildVizConfig(viz) {
+            var local = null;
+            if (window.CONCEPT_VISUALIZATION_CONFIG) {
+                [window.CONCEPT_VISUALIZATION_CONFIG.circuit, window.CONCEPT_VISUALIZATION_CONFIG.control].some(function (g) {
+                    return Object.keys(g).some(function (k) {
+                        var c = g[k];
+                        if (c.template === viz.template && (!viz.mode || c.mode === viz.mode)) { local = c; return true; }
+                        return false;
+                    });
+                });
+            }
+            var params = {};
+            if (local) {
+                Object.keys(local.params).forEach(function (k) {
+                    var p = local.params[k];
+                    var val = (viz.params && viz.params[k] !== undefined) ? Number(viz.params[k]) : p.default;
+                    if (!isFinite(val)) val = p.default;
+                    val = Math.min(Math.max(val, p.range[0]), p.range[1]);
+                    var q = { range: p.range, unit: p.unit, default: val, label: p.label };
+                    if (p.step) q.step = p.step;
+                    params[k] = q;
+                });
+            } else {
+                Object.keys(viz.params || {}).forEach(function (k) {
+                    var v = Number(viz.params[k]);
+                    if (!isFinite(v) || v === 0) return;
+                    var lo = Math.min(v * 0.1, v * 10), hi = Math.max(v * 0.1, v * 10);
+                    params[k] = { range: [lo, hi], unit: '', default: v, label: k };
+                });
+            }
+            return {
+                name: '题目可视化（AI 已解析参数）',
+                template: viz.template,
+                mode: viz.mode,
+                formula: viz.formula || '',
+                params: params
+            };
         }
 
         // 递归构建知识图谱树
