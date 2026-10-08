@@ -20,7 +20,7 @@ const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek
 
 // 答疑助手人设
 const AI_SYSTEM_PROMPT = [
-    '你是「AGZ AI学习网站」的答疑助手，帮助学生解答各学科的学习问题。',
+    '你是「AZG AI学习网站」的答疑助手，帮助学生解答各学科的学习问题。',
     '回答要求：',
     '1. 准确、通俗易懂，优先把概念和原理讲清楚；',
     '2. 善用分点、步骤和例子，重要结论可以单独总结；',
@@ -30,7 +30,7 @@ const AI_SYSTEM_PROMPT = [
 
 // 出题助手人设（要求输出纯 JSON）
 const QUESTIONS_SYSTEM_PROMPT = [
-    '你是「AGZ AI学习网站」的智能出题助手。',
+    '你是「AZG AI学习网站」的智能出题助手。',
     '根据用户给出的知识点，生成 3 道适合学生的练习题：1道选择题、1道简答题、1道应用题。',
     '要求：题目准确覆盖知识点、难度适中、答案和解析完整；',
     '选择题的 answer 必须且只能是正确选项的字母（A/B/C/D 其中一个，不要带选项内容）；',
@@ -41,7 +41,7 @@ const QUESTIONS_SYSTEM_PROMPT = [
 
 // 智能批改人设（要求输出纯 JSON）
 const GRADE_SYSTEM_PROMPT = [
-    '你是「AGZ AI学习网站」的智能批改助手。',
+    '你是「AZG AI学习网站」的智能批改助手。',
     '根据题目、参考答案和学生作答，判断学生答案是否正确，并给出点评。',
     '批改标准：意思正确、要点齐全即可判定为 correct=true，不要求与参考答案逐字一致；',
     '点评用中文，2~3句话：先说明对错，再简要说明依据；若答错，给出关键思路提示，但不要直接写出完整答案。',
@@ -93,7 +93,7 @@ function parseOptions(str) {
 
 // 学习计划规划师人设（要求输出纯 JSON）
 const PLAN_SYSTEM_PROMPT = [
-    '你是「AGZ AI学习网站」的学习计划规划师。',
+    '你是「AZG AI学习网站」的学习计划规划师。',
     '根据用户的学习目标、计划天数和每天可用时间，制定一份可执行的学习计划。',
     '要求：',
     '1. 把大目标拆解成每天 2~4 个具体可执行的小任务（例如"观看导数概念讲解视频并做笔记"），不要写空话；',
@@ -105,7 +105,7 @@ const PLAN_SYSTEM_PROMPT = [
 
 // 学习监督教练人设（输出纯文本）
 const URGE_SYSTEM_PROMPT = [
-    '你是「AGZ AI学习网站」的学习监督教练。',
+    '你是「AZG AI学习网站」的学习监督教练。',
     '根据学生的学习计划和当前进度，给出一段监督提醒。',
     '规则：',
     '1. 有逾期未完成的任务：直接指出差距，给 1 条立即可执行的追赶建议；',
@@ -162,7 +162,7 @@ function calcStreak(dates) {
 
 // 概念讲解大师人设（要求输出纯 JSON）
 const CONCEPT_SYSTEM_PROMPT = [
-    '你是「AGZ AI学习网站」的概念讲解大师。',
+    '你是「AZG AI学习网站」的概念讲解大师。',
     '针对用户输入的概念，输出以下内容：',
     '1. plain：一句话通俗解释，连外行都能听懂；',
     '2. analogy：一个生活化类比，把抽象概念比作日常事物，具体生动；',
@@ -185,7 +185,7 @@ const CONCEPT_SYSTEM_PROMPT = [
 
 // 节点深入讲解人设（输出纯文本）
 const CONCEPT_DEEP_PROMPT = [
-    '你是「AGZ AI学习网站」的概念讲解大师。',
+    '你是「AZG AI学习网站」的概念讲解大师。',
     '用户正在学习某个概念，想深入了解其中的一个子主题。',
     '要求：围绕该子主题给出简明深入的讲解，2~4 个要点或小段，结合具体例子，中文，直接输出文字（不要 JSON、不要 markdown 标题）。'
 ].join('\n');
@@ -916,7 +916,7 @@ app.get('/', (req, res) => {
 // ===== API 清单（原根路径信息迁移到这里） =====
 app.get('/api', (req, res) => {
     res.json({
-        message: 'AI学习网站后端已运行【含反馈功能】',
+        message: 'AZG 后端已运行【含反馈功能】',
         endpoints: {
             register: 'POST /api/register',
             login: 'POST /api/login',
