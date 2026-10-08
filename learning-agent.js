@@ -6,20 +6,21 @@ function isConfigured() {
     return Boolean(API_BASE_URL && API_KEY && MODEL);
 }
 
-async function askModel(messages, temperature = 0.2) {
+async function askModel(messages) {
     if (!isConfigured()) {
         const error = new Error('尚未配置 AI 模型，请在 .env 中设置 AI_BASE_URL、AI_API_KEY 和 AI_MODEL');
         error.status = 503;
         throw error;
     }
 
+    // 不显式传 temperature：部分模型（如 kimi-k3）只允许 temperature=1
     const response = await fetch(`${API_BASE_URL}/chat/completions`, {
         method: 'POST',
         headers: {
             Authorization: `Bearer ${API_KEY}`,
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ model: MODEL, messages, temperature })
+        body: JSON.stringify({ model: MODEL, messages })
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -96,7 +97,7 @@ async function tutorReply(context, question) {
             role: 'user',
             content: `题目与分析上下文：\n${JSON.stringify(context)}\n\n学生问题：${question}`
         }
-    ], 0.5);
+    ]);
 }
 
 module.exports = { analyzeImage, isConfigured, MODEL, tutorReply };
