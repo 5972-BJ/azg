@@ -884,8 +884,8 @@ app.post('/api/learning/chat', async (req, res) => {
     }
 });
 
-// ===== 拍题学习工作台页面（独立子目录托管） =====
-app.use('/拍题', express.static(path.join(__dirname, '拍题')));
+// ===== 拍题学习工作台页面（独立子目录托管，挂载点用 ASCII 避免 Express 5 中文路径不匹配） =====
+app.use('/paiti', express.static(path.join(__dirname, '拍题')));
 
 // ===== 前端静态页面（仅白名单，避免暴露 .env / 数据库等敏感文件） =====
 // Express 5 的 req.path 不会自动解码，这里手动解码后再做白名单匹配
