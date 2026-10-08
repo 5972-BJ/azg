@@ -6,6 +6,7 @@ const path = require('path');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const db = require('./database.js');
+const learningAgent = require('./learning-agent.js');
 
 const app = express();
 app.use(cors());
@@ -280,8 +281,8 @@ async function callDeepSeek(messages, extra) {
     }
 }
 
-// 跨域与JSON解析
-app.use(express.json());
+// 跨域与JSON解析（12mb 上限以支持拍题图片 base64）
+app.use(express.json({ limit: '12mb' }));
 
 // 统一返回格式
 function sendResponse(res, success, data, message) {
@@ -851,6 +852,40 @@ app.get('/api/chat/history', checkToken, (req, res) => {
         sendResponse(res, false, null, err.message);
     }
 });
+
+// ===== 拍题学习工作流 =====
+app.get('/api/learning/status', (req, res) => {
+    sendResponse(res, true, {
+        configured: learningAgent.isConfigured(),
+        model: learningAgent.isConfigured() ? learningAgent.MODEL : null
+    }, '工作流状态');
+});
+
+app.post('/api/learning/analyze', async (req, res) => {
+    try {
+        const { imageData, mimeType } = req.body;
+        const result = await learningAgent.analyzeImage(imageData, mimeType);
+        sendResponse(res, true, result, '题目分析完成');
+    } catch (err) {
+        res.status(err.status || 500).json({ success: false, data: null, message: err.message });
+    }
+});
+
+app.post('/api/learning/chat', async (req, res) => {
+    try {
+        const { context, question } = req.body;
+        if (!context || typeof question !== 'string' || !question.trim()) {
+            return res.status(400).json({ success: false, data: null, message: '请提供题目分析上下文和问题' });
+        }
+        const reply = await learningAgent.tutorReply(context, question.trim());
+        sendResponse(res, true, { reply }, '回答完成');
+    } catch (err) {
+        res.status(err.status || 500).json({ success: false, data: null, message: err.message });
+    }
+});
+
+// ===== 拍题学习工作台页面（独立子目录托管） =====
+app.use('/拍题', express.static(path.join(__dirname, '拍题')));
 
 // ===== 前端静态页面（仅白名单，避免暴露 .env / 数据库等敏感文件） =====
 // Express 5 的 req.path 不会自动解码，这里手动解码后再做白名单匹配
