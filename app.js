@@ -4,7 +4,9 @@ const cors = require('cors');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const path = require('path');
 const db = require('./database.js');
+const learningAgent = require('./learning-agent.js');
 
 const app = express();
 app.use(cors());
@@ -12,7 +14,7 @@ const PORT = process.env.PORT || 3000;
 const SECRET_KEY = process.env.JWT_SECRET || 'default_secret_change_me';
 
 // 跨域与JSON解析
-app.use(express.json());
+app.use(express.json({ limit: '12mb' }));
 
 // 统一返回格式
 function sendResponse(res, success, data, message) {
@@ -134,21 +136,38 @@ app.get('/api/chat/history', checkToken, (req, res) => {
     }
 });
 
-// ===== 根路径测试 =====
-app.get('/', (req, res) => {
-    res.json({
-        message: 'AI学习网站后端已运行【含反馈功能】',
-        endpoints: {
-            register: 'POST /api/register',
-            login: 'POST /api/login',
-            chat: 'POST /api/chat',
-            feedback: 'POST /api/feedback',
-            feedbacks: 'GET /api/feedbacks',
-            chatSave: 'POST /api/chat/save',
-            chatHistory: 'GET /api/chat/history'
-        }
-    });
+// ===== 拍题学习工作流 =====
+app.get('/api/learning/status', (req, res) => {
+    sendResponse(res, true, {
+        configured: learningAgent.isConfigured(),
+        model: learningAgent.isConfigured() ? learningAgent.MODEL : null
+    }, '工作流状态');
 });
+
+app.post('/api/learning/analyze', async (req, res) => {
+    try {
+        const { imageData, mimeType } = req.body;
+        const result = await learningAgent.analyzeImage(imageData, mimeType);
+        sendResponse(res, true, result, '题目分析完成');
+    } catch (err) {
+        res.status(err.status || 500).json({ success: false, data: null, message: err.message });
+    }
+});
+
+app.post('/api/learning/chat', async (req, res) => {
+    try {
+        const { context, question } = req.body;
+        if (!context || typeof question !== 'string' || !question.trim()) {
+            return res.status(400).json({ success: false, data: null, message: '请提供题目分析上下文和问题' });
+        }
+        const reply = await learningAgent.tutorReply(context, question.trim());
+        sendResponse(res, true, { reply }, '回答完成');
+    } catch (err) {
+        res.status(err.status || 500).json({ success: false, data: null, message: err.message });
+    }
+});
+
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.listen(PORT, () => {
     console.log(`✅ 服务器运行在 http://localhost:${PORT}`);
